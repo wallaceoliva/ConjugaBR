@@ -1,0 +1,45 @@
+name: Gerar APK Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Baixar codigo
+        uses: actions/checkout@v4
+      - name: Instalar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar dependencias
+        run: npm install
+      - name: Compilar pagina web
+        env:
+          VITE_CONJUGABR_API_URL: ${{ vars.CONJUGABR_API_URL }}
+        run: npm run build
+      - name: Criar projeto Android
+        run: npx cap add android
+      - name: Sincronizar arquivos Android
+        run: npx cap sync android
+      - name: Compilar APK de testes
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+      - name: Disponibilizar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ConjugaBR-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
